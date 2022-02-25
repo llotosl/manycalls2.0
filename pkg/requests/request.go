@@ -14,7 +14,7 @@ type Request struct {
 	client *http.Client
 }
 
-func newRequest(client *http.Client) *Request {
+func NewRequest(client *http.Client) *Request {
 	return &Request{client: client}
 }
 

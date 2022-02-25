@@ -2,12 +2,12 @@ package main
 
 import (
 	"net/http"
+
+	"./pkg/requests"
 )
 
 func main() {
-	var client *http.Client
-	var clientCookie *http.Client
-	client = &http.Client{}
+	client := &http.Client{}
 
-	request := requests.newRequest(client)
+	request := requests.NewRequest(client)
 }
