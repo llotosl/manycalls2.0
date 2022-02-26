@@ -8,9 +8,9 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 )
-
-const alphabet = "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 // Request struct with GET, POST and PUT methods.
 type Request struct {
@@ -173,4 +173,45 @@ func MakeBoundary(token string, data map[string]string) (string, string, error) 
 	defer w.Close()
 
 	return b.String(), w.FormDataContentType(), nil
+}
+
+// MakeClient create http.Client for Request.
+func MakeClient(proxy string) (*http.Client, *http.Client, error) {
+	var client *http.Client
+	var clientCookie *http.Client
+
+	if proxy != "" {
+		// Создание Transport с прокси.
+		ProxyURL, err := url.Parse(proxy)
+		if err != nil {
+			return nil, nil, err
+		}
+		transport := &http.Transport{Proxy: http.ProxyURL(ProxyURL)}
+		// Создание jar-файла куки.
+		jar, err := cookiejar.New(nil)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		client = &http.Client{
+			Transport: transport,
+		}
+		clientCookie = &http.Client{
+			Transport: transport,
+			Jar:       jar,
+		}
+	} else {
+		// Создание jar-файла куки.
+		jar, err := cookiejar.New(nil)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		client = &http.Client{}
+		clientCookie = &http.Client{
+			Jar: jar,
+		}
+	}
+
+	return client, clientCookie, nil
 }
