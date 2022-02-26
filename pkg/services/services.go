@@ -1,17 +1,18 @@
 package services
 
 import (
+	"bytes"
 	crypto_rand "crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
-	"net/http/cookiejar"
-	"net/url"
 	"regexp"
+	"strconv"
 	"time"
 
-	"github.com/llotosl/manycalls2.0/pkg/requests"
+	requests "github.com/llotosl/manycalls2.0/pkg/requests"
 )
 
 func randStr(length int64, chars string) string {
@@ -34,7 +35,8 @@ func randStr(length int64, chars string) string {
 
 		// Вставляем её в строку
 		out += string(chars[num])
-		i += 1
+
+		i++
 	}
 	return out
 
@@ -108,47 +110,65 @@ type MailRu struct {
 	token string
 }
 
-// Create MailRu struct.
+// NewMailRu create MailRu struct.
 func NewMailRu(token string) *MailRu {
 	return &MailRu{token: token}
 }
 
+// Call make call to phone.
 func (m *MailRu) Call(phone string, proxy string) error {
-	var client *http.Client
-	var clientCookie *http.Client
+	var b bytes.Buffer
+	mailLogin := randStr(10, "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 
-	if proxy != "" {
-		// Создание Transport с прокси.
-		proxyUrl, err := url.Parse("http://" + proxy)
-		if err != nil {
-			panic(err)
-		}
-		transport := &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
-		// Создание jar-файла куки.
-		jar, err := cookiejar.New(nil)
-		if err != nil {
-			panic(err)
-		}
-
-		client = &http.Client{
-			Transport: transport,
-		}
-		clientCookie = &http.Client{
-			Transport: transport,
-			Jar:       jar,
-		}
-	} else {
-		// Создание jar-файла куки.
-		jar, err := cookiejar.New(nil)
-		if err != nil {
-			panic(err)
-		}
-
-		client = &http.Client{}
-		clientCookie = &http.Client{
-			Jar: jar,
-		}
-	}
+	_, clientCookie := requests.MakeClient("")
 
 	request := requests.NewRequest(clientCookie)
+
+	dataHead := map[string]string{
+		"extended":               "true",
+		"more_password_strength": "1",
+		"context":                "signup",
+		"browser":                `{"screen":{"availWidth":"1920","availHeight":"` + randStr(4, "0123456789") + `","width":"1920","height":"1080","colorDepth":"24","pixelDepth":"24","availLeft":"0","availTop":"0"},"navigator":{"userAgent":"Mozilla/5.0 (Linux; Android 9; ANE-LX1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Mobile Safari/537.36","appVersion":"5.0 (Linux; Android 9; ANE-LX1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Mobile Safari/537.36","platform":"Android","vendor":"","product":"WebKit","oscpu":"Android 9","productSub":"","vendorSub":"","maxTouchPoints":"0","doNotTrack":"inaccessible","hardwareConcurrency":"6","cookieEnabled":"true","appCodeName":"Mozilla","appName":"Netscape","language":"en","onLine":"true","webdriver":"false","deviceMemory":"8"},"flash":{"version":"inaccessible"}}`,
+		"from":                   "main_m_touch",
+		"sent_me_ads":            "true",
+		"sent_me_ads_common":     "true",
+		"name":                   `{"first":"` + randStr(int64(randInt(4, 8)), "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789") + `","last":"` + randStr(int64(randInt(4, 8)), "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789") + `"}`,
+		"birthday":               `{"day":` + strconv.Itoa(randInt(4, 29)) + `,"month":` + strconv.Itoa(randInt(1, 12)) + `,"year":` + strconv.Itoa(randInt(1970, 2002)) + `}`,
+		"sex":                    "male",
+		"login":                  mailLogin,
+		"domain":                 "mail.ru",
+		"password":               randStr(16, "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789"),
+		"phones":                 `[{"phone":"` + phone + `","mobile":true}]`,
+		"utm":                    `{"source":"","medium":"","campaign":"","term":"","content":""}`,
+		"referrer":               "https://mail.ru/",
+	}
+
+	data, contentType, err := requests.MakeBoundary("fdsQEFFJjffjgHkf", dataHead)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	headers := map[string]string{
+		`Host`:             `account.mail.ru`,
+		`Connection`:       `keep-alive`,
+		`Accept`:           `application/json, text/plain, */*`,
+		`X-Requested-With`: `XMLHttpRequest`,
+		`User-Agent`:       `Mozilla/5.0 (Linux; Android 9; ANE-LX1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Mobile Safari/537.36`,
+		`X-Request-Id`:     randStr(8, "abcdefghijklmnopqrstuvwxyz0123456789") + randStr(4, "abcdefghijklmnopqrstuvwxyz0123456789") + randStr(4, "abcdefghijklmnopqrstuvwxyz0123456789") + randStr(4, "0123456789") + randStr(12, "abcdefghijklmnopqrstuvwxyz0123456789"),
+		`Content-Type`:     contentType,
+		`Origin`:           `https://account.mail.ru`,
+		`Sec-Fetch-Site`:   `same-origin`,
+		`Sec-Fetch-Mode`:   `cors`,
+		`Sec-Fetch-Dest`:   `empty`,
+		`Referer`:          `https://account.mail.ru/signup?from=main_m_touch`,
+		`Accept-Encoding`:  `gzip, deflate, br`,
+		`Accept-Language`:  `en`,
+	}
+
+	body, _, err := request.Post("https://account.mail.ru/api/v1/user/signup", headers, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

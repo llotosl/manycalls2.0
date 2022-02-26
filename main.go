@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"./pkg/requests"
+	"github.com/llotosl/manycalls2.0/pkg/requests"
 )
 
 func main() {
@@ -13,10 +13,11 @@ func main() {
 	request := requests.NewRequest(client)
 	headers := map[string]string{}
 
-	body, _, err := request.Get("https://google.com", headers)
+	data, contentType, err := requests.MakeBoundary("fdsQEFFJjffjgHkf", dataHead)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(string(body))
+	fmt.Println(data)
+	fmt.Println(contentType)
 }
