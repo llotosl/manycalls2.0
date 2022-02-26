@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/llotosl/manycalls2.0/pkg/requests"
+	requests "github.com/llotosl/manycalls2.0/pkg/requests"
 )
 
 func main() {
