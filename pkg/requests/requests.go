@@ -66,11 +66,10 @@ func (request *Request) Get(url string, headers map[string]string) ([]byte, *htt
 }
 
 // Post method.
-func (request *Request) Post(url string, headers map[string]string, data string) ([]byte, *http.Response, error) {
-	dataNew := []byte(data)
+func (request *Request) Post(url string, headers map[string]string, data []byte) ([]byte, *http.Response, error) {
 
 	// Создание запроса
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(dataNew))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -111,11 +110,10 @@ func (request *Request) Post(url string, headers map[string]string, data string)
 }
 
 // Put method.
-func (request *Request) Put(url string, headers map[string]string, data string) ([]byte, *http.Response, error) {
-	dataNew := []byte(data)
+func (request *Request) Put(url string, headers map[string]string, data []byte) ([]byte, *http.Response, error) {
 
 	// Создание запроса
-	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(dataNew))
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, nil, err
 	}

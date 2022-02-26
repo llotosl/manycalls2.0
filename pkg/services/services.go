@@ -120,7 +120,10 @@ func (m *MailRu) Call(phone string, proxy string) error {
 	var b bytes.Buffer
 	mailLogin := randStr(10, "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 
-	_, clientCookie := requests.MakeClient("")
+	_, clientCookie, err := requests.MakeClient("")
+	if err != nil {
+		return err
+	}
 
 	request := requests.NewRequest(clientCookie)
 
@@ -165,10 +168,12 @@ func (m *MailRu) Call(phone string, proxy string) error {
 		`Accept-Language`:  `en`,
 	}
 
-	body, _, err := request.Post("https://account.mail.ru/api/v1/user/signup", headers, data)
+	body, _, err := request.Post("https://account.mail.ru/api/v1/user/signup", headers, []byte(data))
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(body)
 
 	return nil
 }
