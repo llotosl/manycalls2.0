@@ -154,23 +154,23 @@ func (request *Request) Put(url string, headers map[string]string, data []byte) 
 }
 
 // MakeBoundary create boundary body for request.
-func MakeBoundary(token string, data map[string]string) (string, string, error) {
+func MakeBoundary(token string, data map[string]string) ([]byte, string, error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	err := w.SetBoundary("----WebKitFormBoundary" + token)
 	if err != nil {
-		return "", "", err
+		return []byte(nil), "", err
 	}
 
 	for key, value := range data {
 		err = w.WriteField(key, value)
 		if err != nil {
-			return "", "", err
+			return []byte(nil), "", err
 		}
 	}
-	defer w.Close()
+	w.Close()
 
-	return b.String(), w.FormDataContentType(), nil
+	return b.Bytes(), w.FormDataContentType(), nil
 }
 
 // MakeClient create http.Client for Request.

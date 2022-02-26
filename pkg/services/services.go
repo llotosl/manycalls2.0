@@ -1,9 +1,9 @@
 package services
 
 import (
-	"bytes"
 	crypto_rand "crypto/rand"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -12,8 +12,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/llotosl/manycalls2.0/pkg/requests"
+	"../requests"
 )
+
+const symbols = "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 func randStr(length int64, chars string) string {
 	// Создание рандомной строки; первое значение - длина, второе - используемые символы в строке.
@@ -69,6 +71,7 @@ func Captcha(key string, googlekey string, url string, invisible string, method 
 	if method == "recaptcha2" {
 
 		a, _, _ := request.Get("http://api.captcha.guru/in.php?key="+key+"&method=userrecaptcha&googlekey="+googlekey+"&invisible="+invisible+"&pageurl="+url, map[string]string{})
+		fmt.Println(string(a))
 		re := regexp.MustCompile(`\d+`)
 		recaptcha_id := re.FindAllString(string(a), -1)
 		fmt.Println(recaptcha_id[0])
@@ -80,12 +83,12 @@ func Captcha(key string, googlekey string, url string, invisible string, method 
 		}
 		fmt.Println(string(a))
 		if string(a) == "ERROR_CAPTCHA_UNSOLVABLE" {
-			return "ERROR_CAPTCHA_UNSOLVABLE"
+			return "", errors.New("ERROR_CAPTCHA_UNSOLVABLE")
 		}
 		re = regexp.MustCompile(`OK\|(\S+)$`)
 		captcha_token := re.FindStringSubmatch(string(a))
 		fmt.Println(captcha_token)
-		return captcha_token[1]
+		return captcha_token[1], nil
 
 	} else if method == "hcaptcha" {
 
@@ -111,7 +114,24 @@ func Captcha(key string, googlekey string, url string, invisible string, method 
 
 // MailRu service. Take proxies and CaptchaGuru token.
 type MailRu struct {
-	token string
+	token      string
+	SignUpJSON struct {
+		Body struct {
+			Additional struct {
+				Callui  bool `json:"callui"`
+				Captcha struct {
+					Options struct {
+						Sitekey string `json:"sitekey"`
+					} `json:"options"`
+					Type string `json:"type"`
+				} `json:"captcha"`
+			} `json:"additional"`
+			Token string `json:"token"`
+		} `json:"body"`
+		Email       interface{} `json:"email"`
+		Status      int         `json:"status"`
+		Htmlencoded bool        `json:"htmlencoded"`
+	}
 }
 
 // NewMailRu create MailRu struct.
@@ -120,11 +140,10 @@ func NewMailRu(token string) *MailRu {
 }
 
 // Call make call to phone.
-func (m *MailRu) Call(phone string, proxy string) error {
-	var b bytes.Buffer
-	mailLogin := randStr(10, "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+func (m *MailRu) Call(phone string, proxy string, index string) error {
+	mailLogin := randStr(10, symbols)
 
-	_, clientCookie, err := requests.MakeClient("")
+	_, clientCookie, err := requests.MakeClient(proxy)
 	if err != nil {
 		return err
 	}
@@ -150,7 +169,7 @@ func (m *MailRu) Call(phone string, proxy string) error {
 		"referrer":               "https://mail.ru/",
 	}
 
-	data, contentType, err := requests.MakeBoundary("fdsQEFFJjffjgHkf", dataHead)
+	data, contentType, err := requests.MakeBoundary(randStr(16, symbols), dataHead)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -172,12 +191,77 @@ func (m *MailRu) Call(phone string, proxy string) error {
 		`Accept-Language`:  `en`,
 	}
 
-	body, _, err := request.Post("https://account.mail.ru/api/v1/user/signup", headers, []byte(data))
+	body, _, err := request.Post("https://account.mail.ru/api/v1/user/signup", headers, data)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(body)
+	fmt.Println(index + "!!!" + string(body))
+
+	if string(body) == `{"email":null,"body":"user","status":403,"htmlencoded":true}` {
+		return nil
+	}
+
+	err = json.Unmarshal(body, &m.SignUpJSON)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tokenForCall := m.SignUpJSON.Body.Token
+	googleKey := m.SignUpJSON.Body.Additional.Captcha.Options.Sitekey
+
+	captchaToken, err := Captcha(m.token, googleKey, "https://account.mail.ru/signup?from=main_m_touch", "1", "recaptcha2")
+	if err != nil {
+		return err
+	}
+
+	dataHead = map[string]string{
+		"reg_token":   `{"id":"` + tokenForCall + `","transport":"phone","index":0,"target":"user/signup","format":"only_code"}`,
+		"email":       mailLogin + "@mail.ru",
+		"callui":      "true",
+		"from":        "main_m_touch",
+		"recaptcha":   captchaToken,
+		"lang":        "ru_RU",
+		"htmlencoded": "false",
+		"utm":         "{}",
+	}
+
+	data, contentType, err = requests.MakeBoundary(randStr(16, symbols), dataHead)
+	if err != nil {
+		return err
+	}
+	print(index + " Отправляю второй запрос")
+
+	headers = map[string]string{
+		"Connection":         "close",
+		"sec-ch-ua":          `" Not;A Brand";v="99", "Google Chrome";v="97", "Chromium";v="97"`,
+		"sec-ch-ua-mobile":   "?0",
+		"User-Agent":         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36",
+		"Content-Type":       contentType,
+		"Accept":             "application/json, text/plain, */*",
+		"X-Requested-With":   "XMLHttpRequest",
+		`X-Request-Id`:       randStr(8, "abcdefghijklmnopqrstuvwxyz0123456789") + randStr(4, "abcdefghijklmnopqrstuvwxyz0123456789") + randStr(4, "abcdefghijklmnopqrstuvwxyz0123456789") + randStr(4, "0123456789") + randStr(12, "abcdefghijklmnopqrstuvwxyz0123456789"),
+		"Host":               "account.mail.ru",
+		"sec-ch-ua-platform": "Windows",
+		"Origin":             "https://account.mail.ru",
+		"Sec-Fetch-Site":     "same-origin",
+		"Sec-Fetch-Mode":     "cors",
+		"Sec-Fetch-Dest":     "empty",
+		"Referer":            "https://account.mail.ru/signup?from=main_m_touch",
+		"Accept-Encoding":    "gzip, deflate",
+		"Accept-Language":    "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+	}
+
+	body, _, err = request.Post("https://account.mail.ru/api/v1/tokens/send", headers, data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(index + "!!!" + string(body))
+
+	if string(body) == `{"email":null,"body":"user","status":403,"htmlencoded":true}` {
+		return nil
+	}
 
 	return nil
 }
