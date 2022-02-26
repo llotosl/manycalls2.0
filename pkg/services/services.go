@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	requests "github.com/llotosl/manycalls2.0/pkg/requests"
+	"github.com/llotosl/manycalls2.0/pkg/requests"
 )
 
 func randStr(length int64, chars string) string {
@@ -89,7 +89,7 @@ func Captcha(key string, googlekey string, url string, invisible string, method 
 		re := regexp.MustCompile(`\d+`)
 		recaptcha_id := re.FindAllString(string(a), -1)
 		fmt.Println(recaptcha_id[0])
-		a, _, _ = Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptcha_id[0], map[string]string{})
+		a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptcha_id[0], map[string]string{})
 
 		for string(a) == "CAPCHA_NOT_READY" {
 			time.Sleep(5 * time.Second)

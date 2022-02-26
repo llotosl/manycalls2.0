@@ -2,8 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/llotosl/manycalls2.0/pkg/services"
 )
 
 func main() {
-	fmt.Println("1")
+	mru := services.NewMailRu("325342fsd")
+	err := mru.Call("79173642794")
+	if err != nil {
+		log.Fatal(err)
+	}
 }
