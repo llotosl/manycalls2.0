@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net/http"
 	"regexp"
 	"strconv"
 	"time"
@@ -59,8 +58,12 @@ func randInt(min int, max int) int {
 
 }
 
-func Captcha(key string, googlekey string, url string, invisible string, method string) string {
-	request := requests.NewRequest(http.Client{})
+func Captcha(key string, googlekey string, url string, invisible string, method string) string, err {
+	client, _, err := requests.MakeClient("")
+	if err != nil {
+		return "", err
+	}
+	request := requests.NewRequest(client)
 
 	if method == "recaptcha2" {
 
@@ -100,9 +103,9 @@ func Captcha(key string, googlekey string, url string, invisible string, method 
 		re = regexp.MustCompile(`OK\|(\S+)$`)
 		captcha_token := re.FindStringSubmatch(string(a))
 		fmt.Println(captcha_token)
-		return captcha_token[1]
+		return captcha_token[1], nil
 	}
-	return "error"
+	return "", errors.New("Type another method")
 }
 
 // MailRu service. Take proxies and CaptchaGuru token.
