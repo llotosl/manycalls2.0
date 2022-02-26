@@ -61,6 +61,7 @@ func randInt(min int, max int) int {
 
 }
 
+// Captcha solve recaptcha2 and hcaptcha(CaptchaGuru service).
 func Captcha(key string, googlekey string, url string, invisible string, method string) (string, error) {
 	client, _, err := requests.MakeClient("")
 	if err != nil {
@@ -69,50 +70,49 @@ func Captcha(key string, googlekey string, url string, invisible string, method 
 	request := requests.NewRequest(client)
 
 	if method == "recaptcha2" {
-
 		a, _, _ := request.Get("http://api.captcha.guru/in.php?key="+key+"&method=userrecaptcha&googlekey="+googlekey+"&invisible="+invisible+"&pageurl="+url, map[string]string{})
 		fmt.Println(string(a))
 		re := regexp.MustCompile(`\d+`)
-		recaptcha_id := re.FindAllString(string(a), -1)
-		fmt.Println(recaptcha_id[0])
-		a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptcha_id[0], map[string]string{})
+		recaptchaID := re.FindAllString(string(a), -1)
+		fmt.Println(recaptchaID[0])
+		a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptchaID[0], map[string]string{})
 
 		for string(a) == "CAPCHA_NOT_READY" {
 			time.Sleep(5 * time.Second)
-			a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptcha_id[0], map[string]string{})
+			a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptchaID[0], map[string]string{})
 		}
 		fmt.Println(string(a))
 		if string(a) == "ERROR_CAPTCHA_UNSOLVABLE" {
 			return "", errors.New("ERROR_CAPTCHA_UNSOLVABLE")
 		}
 		re = regexp.MustCompile(`OK\|(\S+)$`)
-		captcha_token := re.FindStringSubmatch(string(a))
-		fmt.Println(captcha_token)
-		return captcha_token[1], nil
+		captchaToken := re.FindStringSubmatch(string(a))
+		fmt.Println(captchaToken)
+		return captchaToken[1], nil
 
 	} else if method == "hcaptcha" {
 
 		a, _, _ := request.Get("http://api.captcha.guru/in.php?key="+key+"&method=hcaptcha&sitekey="+googlekey+"&pageurl="+url, map[string]string{})
 		re := regexp.MustCompile(`\d+`)
-		recaptcha_id := re.FindAllString(string(a), -1)
-		fmt.Println(recaptcha_id[0])
-		a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptcha_id[0], map[string]string{})
+		recaptchaID := re.FindAllString(string(a), -1)
+		fmt.Println(recaptchaID[0])
+		a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptchaID[0], map[string]string{})
 
 		for string(a) == "CAPCHA_NOT_READY" {
 			time.Sleep(5 * time.Second)
-			a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptcha_id[0], map[string]string{})
+			a, _, _ = request.Get("http://api.captcha.guru/res.php?key="+key+"&action=get&id="+recaptchaID[0], map[string]string{})
 
 		}
 
 		re = regexp.MustCompile(`OK\|(\S+)$`)
-		captcha_token := re.FindStringSubmatch(string(a))
-		fmt.Println(captcha_token)
-		return captcha_token[1], nil
+		captchaToken := re.FindStringSubmatch(string(a))
+		fmt.Println(captchaToken)
+		return captchaToken[1], nil
 	}
 	return "", errors.New("Type another method")
 }
 
-// MailRu service. Take proxies and CaptchaGuru token.
+// MailRu service. Take CaptchaGuru token.
 type MailRu struct {
 	token      string
 	SignUpJSON struct {
