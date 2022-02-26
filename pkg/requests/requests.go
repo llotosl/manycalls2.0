@@ -6,19 +6,19 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 )
+
+const alphabet = "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 // Request struct with GET, POST and PUT methods.
 type Request struct {
 	client *http.Client
 }
 
+// NewRequest create Request
 func NewRequest(client *http.Client) *Request {
-	return &Request{client: client}
-}
-
-func NewSession(client *http.Client) *Request {
 	return &Request{client: client}
 }
 
@@ -153,4 +153,24 @@ func (request *Request) Put(url string, headers map[string]string, data string) 
 	defer response.Body.Close()
 
 	return body, response, err
+}
+
+// MakeBoundary create boundary body for request.
+func MakeBoundary(token string, data map[string]string) (string, string, error) {
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	err := w.SetBoundary("----WebKitFormBoundary" + token)
+	if err != nil {
+		return "", "", err
+	}
+
+	for key, value := range data {
+		err = w.WriteField(key, value)
+		if err != nil {
+			return "", "", err
+		}
+	}
+	defer w.Close()
+
+	return b.String(), w.FormDataContentType(), nil
 }
