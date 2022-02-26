@@ -4,6 +4,7 @@ import (
 	"bytes"
 	crypto_rand "crypto/rand"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -58,7 +59,7 @@ func randInt(min int, max int) int {
 
 }
 
-func Captcha(key string, googlekey string, url string, invisible string, method string) string, err {
+func Captcha(key string, googlekey string, url string, invisible string, method string) (string, error) {
 	client, _, err := requests.MakeClient("")
 	if err != nil {
 		return "", err
