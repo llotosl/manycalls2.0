@@ -204,7 +204,7 @@ func (m *MailRu) Call(phone string, proxy string, index string) error {
 
 	err = json.Unmarshal(body, &m.SignUpJSON)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	tokenForCall := m.SignUpJSON.Body.Token
