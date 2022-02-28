@@ -153,7 +153,7 @@ func (request *Request) Put(url string, headers map[string]string, data []byte) 
 	return body, response, err
 }
 
-// MakeBoundary create boundary body for request.
+// MakeBoundary create boundary body for request. Take boudary-token and body in map[string]string format.
 func MakeBoundary(token string, data map[string]string) ([]byte, string, error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
@@ -173,7 +173,7 @@ func MakeBoundary(token string, data map[string]string) ([]byte, string, error) 
 	return b.Bytes(), w.FormDataContentType(), nil
 }
 
-// MakeClient create http.Client for Request.
+// MakeClient create http.Client for Request. Take proxy in format "http://login:password@ip:port"
 func MakeClient(proxy string) (*http.Client, *http.Client, error) {
 	var client *http.Client
 	var clientCookie *http.Client
