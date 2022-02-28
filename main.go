@@ -1,14 +1,14 @@
 package main
 
 import (
-	"log"
-	"./pkg/services"
-	"net/http"
 	"fmt"
 	"html/template"
+	"log"
+	"manycalls/pkg/services"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 )
 
 func homePage(w http.ResponseWriter, r *http.Request) {

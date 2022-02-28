@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"../requests"
+	"manycalls/pkg/requests"
 )
 
 const symbols = "ABCDEFGHIJKLMNOPQRSTYVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
